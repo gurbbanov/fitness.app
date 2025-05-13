@@ -1,0 +1,50 @@
+{
+	"user_inf": {
+		"name": "User Userov",
+		"username": "user",
+		"age": 29,
+		"weight": 88,
+		"height": 182,
+		"registration_date": "10-04-2025"
+	},
+	"user_dt": {
+		"level": 0,
+		"xp": 0,
+		"current_streak": 0,
+		"lifted_weight": 0,
+		"registrated_cals": 0,
+		"registrated_meals": 0
+	},
+	"workout_dt": {
+		"total_volume": 233,
+		"total_sets": 1494,
+		"total_reps": 3242,
+		"total_time": 434,
+		"worked_out": 23,
+		"prs": 3,
+		"week_volume": 24,
+		"week_sets": 89,
+		"week_reps": 342,
+		"week_time": 10
+	},
+	"calory_dt": {
+		"calory_goal": 10000,
+		"protein_goal": 50,
+		"carb_goal": 30,
+		"fat_goal": 40,
+		"calory_registered": 1354,
+		"protein_registered": 70,
+		"carb_registered": 20,
+		"fat_registered": 30,
+		"meal_registered": 3
+	},
+	"all_states": {
+		"calory_add_modal": false,
+		"calories": 0,
+		"proteins": 0,
+		"carbs": 0,
+		"fats": 0
+	},
+	"selected_tab": 0
+}
+

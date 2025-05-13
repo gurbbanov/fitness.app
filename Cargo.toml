@@ -1,0 +1,13 @@
+[package]
+name = "fit_app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+time = {version = "0.3.40", features = ["local-offset"]}
+eframe = "*"
+egui_extras = {version = "*", features = ["all_loaders", "image"]}
+image = "0.25"
+serde = {version = "*", features = ["derive"]}
+serde_json = "*"
+usvg = "*"
