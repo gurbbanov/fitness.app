@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
+use time::{Date, OffsetDateTime};
 
 #[derive(Serialize, Deserialize)]
 pub struct UserInformation {
@@ -38,8 +38,11 @@ pub struct AllWorkoutData {
 
 #[derive(Serialize, Deserialize)]
 pub struct WorkoutData {
-    pub workout_name: Workout
-    
+    pub workout_name: String,
+    pub workout_date: String,
+    pub workout_volume: u32,
+    pub workout_length: u32,
+    pub workout_prs: u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -92,7 +95,6 @@ enum MuscleGroup{
 
 struct Rest{}
 
-#[derive(Serialize, Deserialize)]
 struct Workout {
     name: String,
     exercises: Vec<Exercise>,
