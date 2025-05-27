@@ -46,7 +46,7 @@ pub struct WorkoutData {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CaloryData {
+pub struct MacroData {
     pub calory_goal: u32,
     pub protein_goal: u32,
     pub carb_goal: u32,

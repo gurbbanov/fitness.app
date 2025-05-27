@@ -3,10 +3,11 @@ use time::{OffsetDateTime};
 use egui::{Context, Ui};
 use serde::{Serialize, Deserialize};
 use serde_json;
-use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Shape, Stroke, UiBuilder, Vec2, Shadow};
+use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Stroke, UiBuilder, Vec2, epaint::{Shadow, Shape, CornerRadius}, Rect};
 use eframe::egui::color_picker::color_picker_color32;
 use eframe::egui::scroll_area::State;
-use crate::models::{UserInformation, UserData, AllWorkoutData, CaloryData, States};
+// use eframe::egui::WidgetText::RichText;
+use crate::models::{UserInformation, UserData, AllWorkoutData, MacroData, States};
 use crate::muscles::{workout_tracker_widget_front, workout_tracket_widget_behind};
 use crate::tools::weekday_iso;
 
@@ -15,7 +16,7 @@ pub struct App {
     user_inf: UserInformation,
     user_dt: UserData,
     workout_dt: AllWorkoutData,
-    calory_dt: CaloryData,
+    calory_dt: MacroData,
     all_states: States,
     selected_tab: usize,
 }
@@ -160,38 +161,7 @@ impl App {
 
                     ui.add_space(5.0);
 
-                    let mut green_rects = {
-                        if self.calory_dt.calory_goal> self.calory_dt.calory_registered{
-                            (1.25 * percent as f32).round() as u32
-                        } else {
-                            125
-                        }
-                    };
-
-                    ui.vertical_centered(|ui| {
-                        for _ in 0..5 {
-                            ui.horizontal(|ui| {
-                                for col in 0..cols {
-                                    let (rect, _) = ui.allocate_exact_size(
-                                        egui::vec2(rect_size, rect_size),
-                                        egui::Sense::hover(),
-                                    );
-
-                                    if green_rects > 0 {
-                                        ui.painter().rect_filled(rect, 1.0, egui::Color32::GREEN);
-                                        green_rects -= 1;
-                                    } else {
-                                        ui.painter().rect_filled(rect, 1.0, egui::Color32::GRAY);
-                                    }
-
-                                    if col < cols - 1 {
-                                        ui.add_space(spacing);
-                                    }
-                                }
-                            });
-                        }
-                        ui.add_space(5.0);
-                    });
+                    self.calory_tracker_bar(ctx, frame, ui, spacing, rect_size, cols, percent);
 
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                         ui.label(RichText::new(format!("cals remains: {}", self.calory_dt.calory_goal.saturating_sub(self.calory_dt.calory_registered))).size(13.0));
@@ -375,13 +345,13 @@ impl App {
 
     fn workouts_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
         // ui.heading("WORKOUTS");
-        let is_dark = ctx.style().visuals.dark_mode;
 
         // let bg_color = if is_dark {
         //     egui::Color32::from_rgb(20, 20, 20) // тёмный фон
         // } else {
         //     egui::Color32::from_rgb(240, 240, 240) // светлый фон
         // };
+        let is_dark = ctx.style().visuals.dark_mode;
 
         let elements_color = if is_dark {
             egui::Color32::from_rgb(27, 27, 27)
@@ -580,18 +550,20 @@ impl App {
             egui::vec2(ui.available_width(), 100.0),
         );
 
-        ui.painter().rect_filled(
-            top_rect,
-            egui::epaint::Rounding {
-                nw: 0,
-                ne: 0,
-                sw: 24,
-                se: 24,
-            },
-            elements_color,
-            // egui::Color32::from_rgb(27, 27, 27),
-            // egui::Color32::from_rgb(217, 217, 217),
-        );
+        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color);
+
+        // ui.painter().rect_filled(
+        //     top_rect,
+        //     egui::epaint::Rounding {
+        //         nw: 0,
+        //         ne: 0,
+        //         sw: 24,
+        //         se: 24,
+        //     },
+        //     elements_color,
+        //     // egui::Color32::from_rgb(27, 27, 27),
+        //     // egui::Color32::from_rgb(217, 217, 217),
+        // );
 
         let now = OffsetDateTime::now_local().unwrap();
 
@@ -654,11 +626,292 @@ impl App {
     }
 
     fn calory_tracker_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
-        ui.heading("CALORY TRACKER");
+
+        let is_dark = ctx.style().visuals.dark_mode;
+
+        let elements_color = if is_dark {
+            egui::Color32::from_rgb(27, 27, 27)
+        } else {
+            egui::Color32::from_rgb(217, 217, 217)
+        };
+        // ui.heading("CALORY TRACKER");
+        let top_rect = egui::Rect::from_min_size(
+            ctx.screen_rect().left_top(),
+            egui::vec2(ui.available_width(), 100.0),
+        );
+
+        // ui.painter().rect_filled(
+        //     top_rect,
+        //     egui::epaint::Rounding {
+        //         nw: 0,
+        //         ne: 0,
+        //         sw: 24,
+        //         se: 24,
+        //     },
+        //     elements_color,
+        //     // egui::Color32::from_rgb(27, 27, 27),
+        //     // egui::Color32::from_rgb(217, 217, 217),
+        // );
+
+        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color);
+
+        let now = OffsetDateTime::now_local().unwrap();
+
+        ui.allocate_ui_at_rect(top_rect, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(30.0);
+                ui.label(RichText::new(format!("{} {}", now.month(), now.day())).size(22.0).strong());
+                ui.label(RichText::new(format!("{}", now.weekday())).size(12.0).strong());
+            });
+        });
+
+        ui.add_space(40.0);
+
+        ui.vertical_centered(|ui| {
+            ui.label(RichText::new("CALORIES").size(25.0).strong());
+
+            // ui.add_space(40.0);
+
+            let calory_rect =egui::Rect::from_min_size(
+                // top_rect.left_top() + egui::vec2(50.0, top_rect.height() + 25.0),
+                ctx.screen_rect().left_top() + vec2(150.0, 155.0),
+                egui::vec2(ui.available_width() - 300.0, 100.0),
+            );
+
+            ui.painter().rect_filled(
+                calory_rect,
+                egui::epaint::Rounding {
+                    nw: 24,
+                    ne: 24,
+                    sw: 24,
+                    se: 24,
+                },
+                elements_color,
+                // egui::Color32::from_rgb(27, 27, 27),
+                // egui::Color32::from_rgb(217, 217, 217),
+            );
+
+            ui.allocate_ui_at_rect(calory_rect, |ui| {
+                ui.add_space(calory_rect.width() / 10.0);
+
+                ui.vertical_centered(|ui| {
+                    ui.label(RichText::new(format!("{}/{}", self.calory_dt.calory_registered, self.calory_dt.calory_goal)).size(35.0));
+                });
+            });
+        });
+
+        ui.add_space(50.0);
+
+        let spacing = 3.0;
+        let rect_size = 10.0;
+        let cols = 25;
+
+        let mut percent = 20_u32;
+
+        let total_width = (rect_size * cols as f32) + (spacing * (cols as f32 - 1.0));
+        let available_width = ui.available_width();
+
+        ui.horizontal(|ui| {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.set_width((available_width - total_width - 30.0) / 2.0);
+                });
+            });
+
+            ui.vertical(|ui| {
+                ui.set_width(total_width + 25.0);
+                ui.vertical_centered(|ui| {
+                    ui.set_width(total_width + 25.0);
+                    ui.vertical_centered(|ui| {
+                        self.calory_tracker_bar(ctx, frame, ui, spacing, rect_size, cols, percent);
+                    });
+                });
+            });
+        });
+
+        ui.add_space(10.0);
+
+        ui.vertical_centered(|ui| {
+            ui.label(RichText::new("MACROS").size(25.0).strong());
+            ui.horizontal_centered(|ui| {
+                self.mini_tracker_bar(ctx, frame, ui, spacing, rect_size, 5, percent, self.calory_dt.protein_registered, self.calory_dt.protein_goal);
+                // self.draw_macro_block_with_squares(ctx, frame, ui, "proteins", 60, 90, Color32::from_rgb(0, 100, 200), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
+                // ui.add_space(20.0);
+                // self.draw_macro_block_with_squares(ctx, frame, ui, "carbs", 130, 900, Color32::from_rgb(180, 60, 0), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
+                // ui.add_space(20.0);
+                // self.draw_macro_block_with_squares(ctx, frame, ui, "fats", 46, 130, Color32::from_rgb(150, 0, 0), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
+            });
+        });
     }
 
     fn statistics_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
         ui.heading("STATISTICS");
+    }
+
+    fn calory_tracker_bar(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, spacing: f32, rect_size: f32, cols: i32, percent: u32) {
+        ui.spacing_mut().item_spacing = egui::vec2(1.0, -3.0);
+
+        let mut green_rects = {
+            if self.calory_dt.calory_goal> self.calory_dt.calory_registered{
+                (1.25 * percent as f32).round() as u32
+            } else {
+                125
+            }
+        };
+
+        ui.vertical_centered(|ui| {
+            for _ in 0..5 {
+                ui.horizontal(|ui| {
+                    for col in 0..cols {
+                        let (rect, _) = ui.allocate_exact_size(
+                            egui::vec2(rect_size, rect_size),
+                            egui::Sense::hover(),
+                        );
+
+                        let color =  if green_rects > 0 {
+                            green_rects -= 1;
+                            Color32::GREEN
+                        } else {
+                            Color32::GRAY
+                        };
+                        
+                        ui.painter().rect_filled(rect, 1.0, color);
+
+                        if col < cols - 1 {
+                            ui.add_space(spacing);
+                        }
+                    }
+                });
+            }
+            ui.add_space(5.0);
+        });
+    }
+    
+    fn mini_tracker_bar(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, spacing: f32, rect_size:f32, cols: i32, percent: u32, registered: u32, goal: u32) {
+        ui.spacing_mut().item_spacing = egui::vec2(1.0, -3.0);
+        
+        let ROWS = 5;
+        let COLUMNS = 5;
+        
+        let mut remaining = {
+            if goal > registered {
+                (((ROWS * COLUMNS) as f32 / 100.0) * percent as f32).round() as u32
+            } else {
+                ROWS * COLUMNS 
+            }
+        };
+        
+        ui.vertical_centered(|ui| {
+            for _ in 0..ROWS {
+                ui.horizontal(|ui| {
+                    for col in 0..COLUMNS {
+                        let (rect, _) = ui.allocate_exact_size(
+                            egui::vec2(rect_size, rect_size),
+                            egui::Sense::hover(),
+                        );
+                        
+                        let color =  if remaining > 0 {
+                            remaining -= 1;
+                            Color32::GREEN
+                        } else {
+                            Color32::GRAY
+                        };
+
+                        ui.painter().rect_filled(rect, 1.0, color);
+
+                        if col < COLUMNS - 1 {
+                            ui.add_space(spacing);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // fn draw_macro_block_with_squares(
+    //     &mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui,
+    //     name: &str,
+    //     value: usize,
+    //     max: usize,
+    //     title_color: Color32,
+    //     filled_color: Color32,
+    //     empty_color: Color32,
+    //     spacing: f32,
+    //     rect_size: f32,
+    // ) {
+    //     const COLUMNS: i32 = 5;
+    //     const ROWS: i32 = 5;
+    //     const TOTAL: i32 = COLUMNS * ROWS;
+    // 
+    //     let filled_count = ((value as f32 / max as f32) * TOTAL as f32).round() as i32;
+    // 
+    //     ui.vertical(|ui| {
+    //         ui.group(|ui| {
+    //             ui.vertical_centered(|ui| {
+    //                 ui.label(
+    //                     egui::RichText::new(name)
+    //                         .color(title_color)
+    //                         .strong(),
+    //                 );
+    //                 ui.label(
+    //                     egui::RichText::new(format!("{}/{}", value, max))
+    //                         .strong(),
+    //                 );
+    //             });
+    //         });
+    // 
+    //         ui.add_space(5.0);
+    //         ui.spacing_mut().item_spacing = egui::vec2(spacing, -3.0);
+    // 
+    //         let mut remaining = filled_count;
+    // 
+    //     });
+    // }
+
+
+    // fn draw_rect_with_shadow(painter: &egui::Painter, rect: egui::Rect, rounding: u8, fill: Color32) {
+    //     // Рисуем "тень" — затемнённый прямоугольник под основным
+    //     let shadow_offset = Vec2::new(0.0, 6.0);
+    //     let shadow_color = Color32::from_rgba_unmultiplied(0, 0, 0, 50); // полупрозрачный чёрный
+    //
+    //     let shadow_rect = rect.translate(shadow_offset);
+    //
+    //     painter.rect_filled(shadow_rect, egui::Rounding::same(rounding), shadow_color);
+    //
+    //     // Основной прямоугольник — поверх
+    //     painter.rect_filled(rect, egui::Rounding::same(rounding), fill);
+    // }
+
+
+    fn draw_rect_with_black_shadow(painter: &egui::Painter, rect: egui::Rect, rounding: u8, fill: Color32) {
+        use egui::{Vec2, Rounding, Color32};
+
+        // Плотная чёрная тень
+        let shadow_color = |alpha: u8| Color32::from_rgba_unmultiplied(0, 0, 0, alpha);
+
+        let shadow_offset = Vec2::new(0.0, 6.0);
+
+        let blur_layers = [
+            (5.0, 20),
+            (3.0, 25),
+            (2.0, 30),
+            // (2.0, 50),
+        ];
+
+        for (inflate_by, alpha) in blur_layers {
+            let shadow_rect = rect
+                .translate(shadow_offset)
+                .expand(inflate_by);
+            painter.rect_filled(shadow_rect, Rounding::same(rounding + inflate_by as u8), shadow_color(alpha));
+        }
+
+        // Основной прямоугольник
+        painter.rect_filled(rect, Rounding {
+            nw: 0,
+            ne: 0,
+            sw: 24,
+            se: 24,
+        }, fill);
     }
 
 
