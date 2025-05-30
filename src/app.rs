@@ -1,9 +1,10 @@
 use std::fs;
-use time::{OffsetDateTime};
+use std::sync::Arc;
+use time::{OffsetDateTime, Duration};
 use egui::{Context, Ui};
 use serde::{Serialize, Deserialize};
 use serde_json;
-use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Stroke, UiBuilder, Vec2, epaint::{Shadow, Shape, CornerRadius}, Rect};
+use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Stroke, UiBuilder, Vec2, epaint::{Shadow, Shape, CornerRadius}, Rect, Label, FontDefinitions, FontFamily};
 use eframe::egui::color_picker::color_picker_color32;
 use eframe::egui::scroll_area::State;
 // use eframe::egui::WidgetText::RichText;
@@ -410,120 +411,120 @@ impl App {
             ui.allocate_ui_at_rect(    egui::Rect::from_min_size(pos,             egui::vec2(ui.available_width() - 100.0, 600.0)),
                                                                  // Позиция и размер для вложенных элементов
                                        |ui| {
-                // ui.vertical_centered(|ui| {
-                //     ui.add_space(280.0);
-                //     ui.label(RichText::new("not planned").size(24.0));
-                //     ui.add_space(200.0);
-                // });
-
-                // ui.horizontal(|ui| {
-                //     ui.add_space(side_rect.width() / 13.0);
-                //
-                //     ui.add(
-                //         Button::new(RichText::new("rest").size(22.0))
-                //             //     egui::Color32::from_rgb(91, 0, 113),
-                //             .fill(Color32::from_rgb(91, 0, 113)) // цвет фона кнопки
-                //             .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
-                //             .rounding(10),
-                //             // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
-                //     );
-                //
-                //     let padding = side_rect.width() - (((side_rect.width() / 13.0) * 2.0) + ((side_rect.width() / 2.5) * 2.0)) - 8.0;
-                //     ui.add_space(padding);
-                //
-                //     ui.add(
-                //         Button::new(RichText::new("add workout").size(22.0))
-                //             //     egui::Color32::from_rgb(91, 0, 113),
-                //             .fill(Color32::from_rgb(0, 75, 141)) // цвет фона кнопки
-                //             .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
-                //             .rounding(10),
-                //         // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
-                //     );
-                // })
-
                 ui.vertical_centered(|ui| {
-                    ui.add_space(30.0);
-                    ui.label(RichText::new("legs & shoulders").size(27.0).strong());
-                    ui.add_space(50.0);
+                    ui.add_space(280.0);
+                    ui.add(Label::new(RichText::new("not planned").size(24.0)).selectable(false));
+                    ui.add_space(200.0);
+                });
 
-                    ui.horizontal(|ui| {
-                        ui.vertical(|ui| {
-                            ui.set_width(side_rect.width() / 2.0);
-                            ui.vertical_centered(|ui| {
-                                workout_tracker_widget_front(ctx, frame, ui);
-                            });
-                        });
-
-                        ui.vertical(|ui| {
-                            ui.set_width(side_rect.width() / 2.0);
-                            ui.vertical_centered(|ui| {
-                                workout_tracket_widget_behind(ctx, frame, ui);
-                            });
-                        });
-                    });
-
-                    ui.add_space(50.0);
+                ui.horizontal(|ui| {
+                    ui.add_space(side_rect.width() / 13.0);
 
                     ui.add(
-                        Button::new(RichText::new("start").size(22.0).strong().color(Color32::WHITE))
+                        Button::new(RichText::new("rest").size(22.0))
                             //     egui::Color32::from_rgb(91, 0, 113),
-                            .fill(Color32::from_rgb(21, 141, 0)) // цвет фона кнопки
-                            .min_size(Vec2::new(side_rect.width() / 4.0, 40.0))
+                            .fill(Color32::from_rgb(91, 0, 113)) // цвет фона кнопки
+                            .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
                             .rounding(10),
+                            // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
                     );
 
-                    ui.add_space(12.0);
+                    let padding = side_rect.width() - (((side_rect.width() / 13.0) * 2.0) + ((side_rect.width() / 2.5) * 2.0)) - 8.0;
+                    ui.add_space(padding);
 
-                    ui.horizontal(|ui| {
-                        let button_width = side_rect.width() / 4.0;
-                        let spacing = 6.0;
-                        let total_width = button_width * 3.0 + spacing * 2.0;
+                    ui.add(
+                        Button::new(RichText::new("add workout").size(22.0))
+                            //     egui::Color32::from_rgb(91, 0, 113),
+                            .fill(Color32::from_rgb(0, 75, 141)) // цвет фона кнопки
+                            .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
+                            .rounding(10),
+                        // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
+                    );
+                });
 
-                        let left_padding = (side_rect.width() - total_width) / 2.1;
-                        ui.add_space(left_padding);
-
-                        // Левая кнопка
-                        ui.add(
-                            Button::new(RichText::new("change workout").size(15.0).strong().color(Color32::WHITE))
-                                .fill(Color32::from_rgb(0, 75, 141))
-                                .min_size(Vec2::new(button_width, 30.0))
-                                .rounding(8),
-                        );
-
-                        ui.add_space(spacing);
-
-                        // Центральная кнопка
-                        ui.add(
-                            Button::new(RichText::new("rest").size(18.0).strong().color(Color32::WHITE))
-                                .fill(Color32::from_rgb(91, 0, 113))
-                                .min_size(Vec2::new(button_width, 30.0))
-                                .rounding(8),
-                        );
-
-                        ui.add_space(spacing);
-
-                        // Правая кнопка
-                        ui.add(
-                            Button::new(RichText::new("skip").size(18.0).color(Color32::WHITE))
-                                .fill(Color32::from_rgb(141, 0, 19))
-                                .min_size(Vec2::new(button_width, 30.0))
-                                .rounding(8),
-                        );
-                    });
-
-                    //
-                    // let padding = side_rect.width() - (((side_rect.width() / 13.0) * 2.0) + ((side_rect.width() / 2.5) * 2.0)) - 8.0;
-                    // ui.add_space(padding);
-                    //
-                    // ui.add(
-                    //     Button::new(RichText::new("add workout").size(22.0))
-                    //         //     egui::Color32::from_rgb(91, 0, 113),
-                    //         .fill(Color32::from_rgb(0, 75, 141)) // цвет фона кнопки
-                    //         .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
-                    //         .rounding(10),
-                    //     // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
-                    // );
-                })
+                // ui.vertical_centered(|ui| {
+                //     ui.add_space(30.0);
+                //     ui.label(RichText::new("legs & shoulders").size(27.0).strong());
+                //     ui.add_space(50.0);
+                //
+                //     ui.horizontal(|ui| {
+                //         ui.vertical(|ui| {
+                //             ui.set_width(side_rect.width() / 2.0);
+                //             ui.vertical_centered(|ui| {
+                //                 workout_tracker_widget_front(ctx, frame, ui);
+                //             });
+                //         });
+                //
+                //         ui.vertical(|ui| {
+                //             ui.set_width(side_rect.width() / 2.0);
+                //             ui.vertical_centered(|ui| {
+                //                 workout_tracket_widget_behind(ctx, frame, ui);
+                //             });
+                //         });
+                //     });
+                //
+                //     ui.add_space(50.0);
+                //
+                //     ui.add(
+                //         Button::new(RichText::new("start").size(22.0).strong().color(Color32::WHITE))
+                //             //     egui::Color32::from_rgb(91, 0, 113),
+                //             .fill(Color32::from_rgb(21, 141, 0)) // цвет фона кнопки
+                //             .min_size(Vec2::new(side_rect.width() / 4.0, 40.0))
+                //             .rounding(10),
+                //     );
+                //
+                //     ui.add_space(12.0);
+                //
+                //     ui.horizontal(|ui| {
+                //         let button_width = side_rect.width() / 4.0;
+                //         let spacing = 6.0;
+                //         let total_width = button_width * 3.0 + spacing * 2.0;
+                //
+                //         let left_padding = (side_rect.width() - total_width) / 2.1;
+                //         ui.add_space(left_padding);
+                //
+                //         // Левая кнопка
+                //         ui.add(
+                //             Button::new(RichText::new("change workout").size(15.0).strong().color(Color32::WHITE))
+                //                 .fill(Color32::from_rgb(0, 75, 141))
+                //                 .min_size(Vec2::new(button_width, 30.0))
+                //                 .rounding(8),
+                //         );
+                //
+                //         ui.add_space(spacing);
+                //
+                //         // Центральная кнопка
+                //         ui.add(
+                //             Button::new(RichText::new("rest").size(18.0).strong().color(Color32::WHITE))
+                //                 .fill(Color32::from_rgb(91, 0, 113))
+                //                 .min_size(Vec2::new(button_width, 30.0))
+                //                 .rounding(8),
+                //         );
+                //
+                //         ui.add_space(spacing);
+                //
+                //         // Правая кнопка
+                //         ui.add(
+                //             Button::new(RichText::new("skip").size(18.0).color(Color32::WHITE))
+                //                 .fill(Color32::from_rgb(141, 0, 19))
+                //                 .min_size(Vec2::new(button_width, 30.0))
+                //                 .rounding(8),
+                //         );
+                //     });
+                //
+                //     //
+                //     // let padding = side_rect.width() - (((side_rect.width() / 13.0) * 2.0) + ((side_rect.width() / 2.5) * 2.0)) - 8.0;
+                //     // ui.add_space(padding);
+                //     //
+                //     // ui.add(
+                //     //     Button::new(RichText::new("add workout").size(22.0))
+                //     //         //     egui::Color32::from_rgb(91, 0, 113),
+                //     //         .fill(Color32::from_rgb(0, 75, 141)) // цвет фона кнопки
+                //     //         .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
+                //     //         .rounding(10),
+                //     //     // .stroke(egui::Stroke::new(1.0, Color32::WHITE)), // рамка
+                //     // );
+                // })
 
                 // let rest_button = egui::Rect::from_min_size(
                 //     side_rect.left_top() + vec2(30.0, 480.0),
@@ -571,8 +572,8 @@ impl App {
 
             ui.vertical_centered(|ui| {
                 ui.add_space(30.0);
-                ui.label(RichText::new(format!("{} {}", now.month(), now.day())).size(22.0).strong());
-                ui.label(RichText::new(format!("{}", now.weekday())).size(12.0).strong());
+                ui.add(Label::new(RichText::new(format!("{} {}", now.month(), now.day())).size(25.0).strong()).selectable(false));
+                ui.add(Label::new(RichText::new(format!("{}", now.weekday())).size(15.0).strong()).selectable(false));
             });
         });
 
@@ -605,20 +606,16 @@ impl App {
                     ui.add_space((side_rect.width() - rect_width * 7.0) / 9.0);
                     let today = weekday_iso(now.weekday());
 
-                    for i in 1..8{
-                        ui.add(Button::new(RichText::new(format!("{}",
-                                                                 {if (i < today) {
-                                                                     now.day() - i
-                                                                 } else if (i > today) {
-                                                                     now.day() + i
-                                                                 } else {
-                                                                    now.day()
-                                                                 }})
-                        ).size(18.0).color(Color32::WHITE))
-                                   .fill( { if (i == today) {Color32::from_rgb(0, 75, 142)} else {Color32::from_rgb(96, 96, 96)}})
-                                   .min_size(Vec2::new(rect_width, 60.0))
-                                   .rounding(8),
-                        );
+                    for i in 1..=7 {
+                        let offset = i as i32 - today as i32;
+                        let date = now + Duration::days(offset.into());
+
+                        ui.add(Button::new(RichText::new(format!("{}", date.day()))
+                            .size(18.0)
+                            .color(Color32::WHITE))
+                            .fill(if i == today { Color32::from_rgb(0, 75, 142) } else { Color32::from_rgb(96, 96, 96) })
+                            .min_size(Vec2::new(rect_width, 60.0))
+                            .rounding(8));
                     }
                 });
             });
@@ -660,15 +657,15 @@ impl App {
         ui.allocate_ui_at_rect(top_rect, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add_space(30.0);
-                ui.label(RichText::new(format!("{} {}", now.month(), now.day())).size(22.0).strong());
-                ui.label(RichText::new(format!("{}", now.weekday())).size(12.0).strong());
+                ui.add(Label::new(RichText::new(format!("{} {}", now.month(), now.day())).size(25.0).strong()).selectable(false));
+                ui.add(Label::new(RichText::new(format!("{}", now.weekday())).size(15.0).strong()).selectable(false));
             });
         });
 
         ui.add_space(40.0);
 
         ui.vertical_centered(|ui| {
-            ui.label(RichText::new("CALORIES").size(25.0).strong());
+            ui.add(Label::new(RichText::new("CALORIES").size(25.0).strong()).selectable(false));
 
             // ui.add_space(40.0);
 
@@ -695,7 +692,7 @@ impl App {
                 ui.add_space(calory_rect.width() / 10.0);
 
                 ui.vertical_centered(|ui| {
-                    ui.label(RichText::new(format!("{}/{}", self.calory_dt.calory_registered, self.calory_dt.calory_goal)).size(35.0));
+                    ui.label(RichText::new(format!("{}/{}", self.calory_dt.calory_registered, self.calory_dt.calory_goal)).size(35.0).strong());
                 });
             });
         });
@@ -752,7 +749,7 @@ impl App {
                 Vec2::new(rect_length, ctx.screen_rect().min.y + 50.0),
             );
 
-            ui.label(RichText::new("MACROS").size(25.0).strong());
+            ui.add(Label::new(RichText::new("MACROS").size(25.0).strong()).selectable(false));
 
             ui.horizontal(|ui| {
 
@@ -839,7 +836,7 @@ impl App {
 
             ui.add_space(5.0);
 
-            ui.label(RichText::new("HISTORY").size(25.0).strong());
+            ui.add(Label::new(RichText::new("HISTORY").size(25.0).strong()).selectable(false));
 
             let history_rect = Rect::from_min_size(
                 Pos2::new((ui.available_width() / 2.0) - 240.0, ctx.screen_rect().min.y + 590.0),
@@ -936,7 +933,7 @@ impl App {
 
         let ROWS = 5;
         let COLUMNS = 5;
-        
+
         let percent = ((registered as f32 / goal as f32) * 100.0) as u32;
 
         let mut remaining = if goal > registered {
@@ -1090,6 +1087,29 @@ impl App {
     }
 }
 
+fn setup_custom_fonts(ctx: &egui::Context) {
+    let mut fonts = FontDefinitions::default();
+
+    // Добавляем свой TTF-шрифт из ресурсов (например, "my_font.ttf")
+    fonts.font_data.insert(
+        "my_font".to_owned(),
+        Arc::new(egui::FontData::from_static(include_bytes!("../SF-Pro-Display-Semibold.otf"))), // или from_owned()
+    );
+
+    // Назначаем этот шрифт для пропорционального и моноширинного текста
+    // fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "my_font".to_owned());
+    // fonts.families.get_mut(&FontFamily::Monospace).unwrap().push("my_font".to_owned());
+    // 
+    // ctx.set_fonts(fonts);
+    fonts
+        .families
+        .get_mut(&FontFamily::Proportional)
+        .unwrap()
+        .insert(0, "my_font".to_owned());
+
+    ctx.set_fonts(fonts);
+}
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let is_dark = ctx.style().visuals.dark_mode;
@@ -1105,6 +1125,8 @@ impl eframe::App for App {
         } else {
             egui::Color32::from_rgb(200, 100, 50) // оранжевый для light
         };
+        
+        setup_custom_fonts(ctx);
 
         // рисуем на всю область
         ctx.layer_painter(egui::LayerId::background())
@@ -1202,7 +1224,7 @@ impl eframe::App for App {
 
                     ui.add_space(left_padding);
 
-                    for (i, label) in ["home", "friends", "workouts", "calory tracker", "statistics"].iter().enumerate() {
+                    for (i, label) in ["🏠", "🌍", "💪", "🍴", "📈"].iter().enumerate() {
                         let selected = self.selected_tab == i;
                         let button = egui::SelectableLabel::new(selected, *label);
                         if ui.add_sized(egui::vec2(button_width, 30.0), button).clicked() {
