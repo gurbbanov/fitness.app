@@ -11,3 +11,4 @@ image = "0.25"
 serde = {version = "*", features = ["derive"]}
 serde_json = "*"
 usvg = "*"
+watch = "0.2.3"

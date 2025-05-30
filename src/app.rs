@@ -151,7 +151,7 @@ impl App {
                 ui.vertical_centered(|ui| {
                     ui.horizontal(|ui| {
                         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(RichText::new(format!("cals registered: {}", self.calory_dt.calory_goal)).size(13.0));
+                            ui.label(RichText::new(format!("cals registered: {}", self.calory_dt.calory_registered)).size(13.0));
                         });
 
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -706,7 +706,7 @@ impl App {
         let rect_size = 10.0;
         let cols = 25;
 
-        let mut percent = 20_u32;
+        let percent = ((self.calory_dt.calory_registered as f32 / self.calory_dt.calory_goal as f32) * 100.0) as u32;
 
         let total_width = (rect_size * cols as f32) + (spacing * (cols as f32 - 1.0));
         let available_width = ui.available_width();
@@ -732,14 +732,156 @@ impl App {
         ui.add_space(10.0);
 
         ui.vertical_centered(|ui| {
+
+            let rect_length = 130.0;
+
+            let available_width = ui.available_width();
+
+            let carbs_rect = Rect::from_min_size(
+                Pos2::new((available_width/ 2.0 ) - (rect_length / 2.0), ctx.screen_rect().min.y + 405.0),
+                Vec2::new(rect_length, ctx.screen_rect().min.y  + 50.0)
+            );
+
+            let proteins_rect = Rect::from_min_size(
+                carbs_rect.left_top() - Vec2::new(rect_length + 10.0, 0.0),
+                Vec2::new(rect_length, ctx.screen_rect().min.y + 50.0),
+            );
+
+            let fats_rect = Rect::from_min_size(
+                carbs_rect.right_top() + Vec2::new(10.0, 0.0),
+                Vec2::new(rect_length, ctx.screen_rect().min.y + 50.0),
+            );
+
             ui.label(RichText::new("MACROS").size(25.0).strong());
-            ui.horizontal_centered(|ui| {
-                self.mini_tracker_bar(ctx, frame, ui, spacing, rect_size, 5, percent, self.calory_dt.protein_registered, self.calory_dt.protein_goal);
-                // self.draw_macro_block_with_squares(ctx, frame, ui, "proteins", 60, 90, Color32::from_rgb(0, 100, 200), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
-                // ui.add_space(20.0);
-                // self.draw_macro_block_with_squares(ctx, frame, ui, "carbs", 130, 900, Color32::from_rgb(180, 60, 0), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
-                // ui.add_space(20.0);
-                // self.draw_macro_block_with_squares(ctx, frame, ui, "fats", 46, 130, Color32::from_rgb(150, 0, 0), Color32::GREEN, Color32::GRAY, 2.0, 10.0);
+
+            ui.horizontal(|ui| {
+
+
+                ui.painter().rect_filled(
+                    carbs_rect,
+                    egui::epaint::Rounding {
+                        nw: 14,
+                        ne: 14,
+                        sw: 14,
+                        se: 14,
+                    },
+                    elements_color,
+                    // egui::Color32::from_rgb(27, 27, 27),
+                    // egui::Color32::from_rgb(217, 217, 217),
+                );
+
+                ui.allocate_ui_at_rect(carbs_rect, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(2.0);
+                        ui.label(RichText::new("carbs").strong().color(egui::Color32::from_rgb(141, 54, 0)).size(14.0));
+                        ui.label(RichText::new(format!("{}/{}", self.calory_dt.carb_registered, self.calory_dt.carb_goal)).size(23.0).strong());
+                        ui.add_space(5.0);
+                        ui.horizontal(|ui| {
+                            ui.add_space(31.0);
+                            self.mini_tracker_bar(ctx, frame, ui, spacing, rect_size, 5, self.calory_dt.carb_registered, self.calory_dt.carb_goal);
+                        });
+                    });
+                });
+
+
+                ui.painter().rect_filled(
+                    proteins_rect,
+                    egui::epaint::Rounding {
+                        nw: 14,
+                        ne: 14,
+                        sw: 14,
+                        se: 14,
+                    },
+                    elements_color,
+                    // egui::Color32::from_rgb(27, 27, 27),
+                    // egui::Color32::from_rgb(217, 217, 217),
+                );
+
+                ui.allocate_ui_at_rect(proteins_rect, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(2.0);
+                        ui.label(RichText::new("proteins").strong().color(egui::Color32::from_rgb(0, 75, 140)).size(14.0));
+                        ui.label(RichText::new(format!("{}/{}", self.calory_dt.protein_registered, self.calory_dt.protein_goal)).size(23.0).strong());
+                        ui.add_space(5.0);
+                        ui.horizontal(|ui| {
+                            ui.add_space(31.0);
+                            self.mini_tracker_bar(ctx, frame, ui, spacing, rect_size, 5, self.calory_dt.protein_registered, self.calory_dt.protein_goal);
+                        });
+                    });
+                });
+
+                ui.painter().rect_filled(
+                    fats_rect,
+                    egui::epaint::Rounding {
+                        nw: 14,
+                        ne: 14,
+                        sw: 14,
+                        se: 14,
+                    },
+                    elements_color,
+                    // egui::Color32::from_rgb(27, 27, 27),
+                    // egui::Color32::from_rgb(217, 217, 217),
+                );
+
+                ui.allocate_ui_at_rect(fats_rect, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(2.0);
+                        ui.label(RichText::new("fats").strong().color(egui::Color32::from_rgb(141, 0, 19)).size(14.0));
+                        ui.label(RichText::new(format!("{}/{}", self.calory_dt.fat_registered, self.calory_dt.fat_goal)).size(23.0).strong());
+                        ui.add_space(5.0);
+                        ui.horizontal(|ui| {
+                            ui.add_space(31.0);
+                            self.mini_tracker_bar(ctx, frame, ui, spacing, rect_size, 5, self.calory_dt.fat_registered, self.calory_dt.fat_goal);
+                        });
+                    });
+                });
+            });
+
+            ui.add_space(5.0);
+
+            ui.label(RichText::new("HISTORY").size(25.0).strong());
+
+            let history_rect = Rect::from_min_size(
+                Pos2::new((ui.available_width() / 2.0) - 240.0, ctx.screen_rect().min.y + 590.0),
+                Vec2::new(480.0, 150.0),
+            );
+
+            ui.painter().rect_filled(
+                history_rect,
+                egui::epaint::Rounding {
+                    nw: 28,
+                    ne: 28,
+                    sw: 28,
+                    se: 28,
+                },
+                elements_color,
+            );
+
+            let bot_rect = egui::Rect::from_min_size(
+                ctx.screen_rect().left_bottom() - vec2(0.0, 130.0),
+                ctx.screen_rect().right_bottom().to_vec2(),
+            );
+
+            ui.painter().rect_filled(
+                bot_rect,
+                egui::epaint::Rounding {
+                    nw: 110,
+                    ne: 110,
+                    sw: 0,
+                    se: 0,
+                },
+                elements_color,
+            );
+
+            ui.allocate_ui_at_rect(bot_rect, |ui| {
+                ui.add_space(30.0);
+                ui.add(
+                    Button::new(RichText::new("add calories").size(18.0).strong().color(Color32::WHITE))
+                        //     egui::Color32::from_rgb(91, 0, 113),
+                        .fill(Color32::from_rgb(21, 141, 0)) // цвет фона кнопки
+                        .min_size(Vec2::new(120.0, 40.0))
+                        .rounding(12),
+                );
             });
         });
     }
@@ -786,22 +928,24 @@ impl App {
             ui.add_space(5.0);
         });
     }
-    
-    fn mini_tracker_bar(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, spacing: f32, rect_size:f32, cols: i32, percent: u32, registered: u32, goal: u32) {
-        ui.spacing_mut().item_spacing = egui::vec2(1.0, -3.0);
-        
+
+
+    fn mini_tracker_bar(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, spacing: f32, rect_size:f32, cols: i32, registered: u32, goal: u32) {
+        // let prev_spacing = ui.spacing().item_spacing; // сохраняем
+        ui.spacing_mut().item_spacing = egui::vec2(1.0, -3.0); // временно меняем
+
         let ROWS = 5;
         let COLUMNS = 5;
         
-        let mut remaining = {
-            if goal > registered {
-                (((ROWS * COLUMNS) as f32 / 100.0) * percent as f32).round() as u32
-            } else {
-                ROWS * COLUMNS 
-            }
+        let percent = ((registered as f32 / goal as f32) * 100.0) as u32;
+
+        let mut remaining = if goal > registered {
+            (((ROWS * COLUMNS) as f32 / 100.0) * percent as f32).round() as u32
+        } else {
+            ROWS * COLUMNS
         };
-        
-        ui.vertical_centered(|ui| {
+
+        ui.vertical(|ui| {
             for _ in 0..ROWS {
                 ui.horizontal(|ui| {
                     for col in 0..COLUMNS {
@@ -809,8 +953,8 @@ impl App {
                             egui::vec2(rect_size, rect_size),
                             egui::Sense::hover(),
                         );
-                        
-                        let color =  if remaining > 0 {
+
+                        let color = if remaining > 0 {
                             remaining -= 1;
                             Color32::GREEN
                         } else {
@@ -826,6 +970,8 @@ impl App {
                 });
             }
         });
+
+        // ui.spacing_mut().item_spacing = prev_spacing; // восстанавливаем
     }
 
     // fn draw_macro_block_with_squares(
