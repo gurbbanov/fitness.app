@@ -4,13 +4,33 @@ use time::{OffsetDateTime, Duration};
 use egui::{Context, Ui};
 use serde::{Serialize, Deserialize};
 use serde_json;
-use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Stroke, UiBuilder, Vec2, epaint::{Shadow, Shape, CornerRadius}, Rect, Label, FontDefinitions, FontFamily};
+use eframe::egui::{self, pos2, vec2, Button, Color32, Layout, Pos2, RichText, Stroke, UiBuilder, Vec2, epaint::{Shadow, Shape, CornerRadius}, Rect, Label, FontDefinitions, FontFamily, TextureHandle, Rounding};
 use eframe::egui::color_picker::color_picker_color32;
 use eframe::egui::scroll_area::State;
-// use eframe::egui::WidgetText::RichText;
 use crate::models::{UserInformation, UserData, AllWorkoutData, MacroData, States};
 use crate::muscles::{workout_tracker_widget_front, workout_tracket_widget_behind};
 use crate::tools::weekday_iso;
+
+
+pub struct AppRuntime {
+    pub app: App,
+    pub image_texture: Option<TextureHandle>,
+}
+
+impl AppRuntime {
+    pub fn new(ctx: &egui::Context) -> Self {
+        let image = load_png(ctx, include_bytes!("blue_dark.png"));
+        let app = App::new(); // или другой способ загрузки состояния
+
+        // let image = load_image_from_path("decor.png");
+        // let texture = ctx.load_texture("decor", image, Default::default());
+
+        Self {
+            app,
+            image_texture: Some(image),
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct App {
@@ -20,7 +40,51 @@ pub struct App {
     calory_dt: MacroData,
     all_states: States,
     selected_tab: usize,
+
+    #[serde(skip)]
+    image_texture: Option<TextureHandle>,
 }
+
+fn load_png(ctx: &egui::Context, bytes: &[u8]) -> egui::TextureHandle {
+    let image = image::load_from_memory(bytes).unwrap();
+    let size = [image.width() as usize, image.height() as usize];
+    let image_buffer = image.to_rgba8();
+    let pixels = image_buffer.as_flat_samples();
+
+    let egui_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+    ctx.load_texture("background", egui_image, egui::TextureOptions::LINEAR)
+}
+
+fn draw_stretched_background_x(ui: &mut egui::Ui, texture: &egui::TextureHandle, offset: f32) {
+    let texture_size = texture.size_vec2(); 
+    let available_rect = ui.max_rect(); 
+
+    let available_width = available_rect.width();
+    let scale = available_width / texture_size.x;
+
+    let scaled_height = texture_size.y * scale;
+
+    // 🧭 Вариант 1: Центрирование по вертикали
+    // let y_centered = available_rect.center().y - scaled_height / 2.0;
+
+    // 🧭 Вариант 2: Приподнять на 50px от верха (можно изменить на любое значение)
+    let y_top = available_rect.min.y - offset;
+
+    let rect = egui::Rect::from_min_size(
+        egui::pos2(available_rect.min.x, y_top), 
+        egui::vec2(available_width, scaled_height),
+    );
+
+    let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+
+    ui.painter().add(egui::Shape::image(
+        texture.id(),
+        rect,
+        uv,
+        egui::Color32::LIGHT_BLUE,
+    ));
+}
+
 
 impl App {
     pub fn new() -> Self {
@@ -36,21 +100,8 @@ impl App {
 
     fn home_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
         // ui.add_space(10.0);
-        // let texture = load_png(ctx, include_bytes!("../back.png"));
-        // let available_width = ui.available_width();
-        // let texture_size = self.texture.size_vec2();
+        let available_width = ui.available_width();
 
-        // Рассчитываем масштаб по X
-        // let scale_x = available_width / texture_size.x;
-
-        // Высота остаётся оригинальной
-        // let scaled_size = egui::Vec2::new(available_width, texture_size.y * scale_x);
-        // draw_stretched_background_x(ui, &texture);
-
-        // ui.image(texture, scaled_size);
-
-
-        // draw_stretched_background_x(ui, &texture);
 
         let default_pp = egui::include_image!("../user.jpg");
 
@@ -344,7 +395,7 @@ impl App {
         ui.heading("FRIENDS");
     }
 
-    fn workouts_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
+    fn workouts_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, image_texture: Option<&TextureHandle>) {
         // ui.heading("WORKOUTS");
 
         // let bg_color = if is_dark {
@@ -359,16 +410,6 @@ impl App {
         } else {
             egui::Color32::from_rgb(217, 217, 217)
         };
-
-        // let shadow = Shadow {
-        //     offset: [4.0, 4.0],
-        //     blur: 8.0,
-        //     spread: 0.0,
-        //     color: Color32::from_rgba_premultiplied(0, 0, 0, 100),
-        // };
-
-
-        // ui.add_space(25.0);
 
         let side_rect =egui::Rect::from_min_size(
             // top_rect.left_top() + egui::vec2(50.0, top_rect.height() + 25.0),
@@ -387,17 +428,15 @@ impl App {
 
             if response.dragged() {
                 let delta = response.drag_delta();
-                pos.y += delta.y; // Обновляем позицию по y
+                pos.y += delta.y; 
 
-                // Сохраняем новую позицию в памяти
                 ctx.data_mut(|data| {
                     data.insert_temp(id, pos);
                 });
             }
 
-            // Рисуем прямоугольник с обновленной позицией
             ui.painter().rect_filled(
-                egui::Rect::from_min_size(pos, vec2(ui.available_width() - 100.0, 600.0)), // Используем pos как начальную позицию
+                Rect::from_min_size(pos, vec2(ui.available_width() - 100.0, 600.0)), 
                 egui::epaint::Rounding {
                     nw: 24,
                     ne: 24,
@@ -405,12 +444,9 @@ impl App {
                     se: 24,
                 },
                 elements_color,
-                // Color32::from_rgb(217, 217, 217),
             );
 
-            ui.allocate_ui_at_rect(    egui::Rect::from_min_size(pos,             egui::vec2(ui.available_width() - 100.0, 600.0)),
-                                                                 // Позиция и размер для вложенных элементов
-                                       |ui| {
+            ui.allocate_ui_at_rect(Rect::from_min_size(pos, vec2(ui.available_width() - 100.0, 600.0)),|ui| {
                 ui.vertical_centered(|ui| {
                     ui.add_space(280.0);
                     ui.add(Label::new(RichText::new("not planned").size(24.0)).selectable(false));
@@ -421,7 +457,7 @@ impl App {
                     ui.add_space(side_rect.width() / 13.0);
 
                     ui.add(
-                        Button::new(RichText::new("rest").size(22.0))
+                        Button::new(RichText::new("rest").size(22.0).color(Color32::WHITE))
                             //     egui::Color32::from_rgb(91, 0, 113),
                             .fill(Color32::from_rgb(91, 0, 113)) // цвет фона кнопки
                             .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
@@ -433,7 +469,7 @@ impl App {
                     ui.add_space(padding);
 
                     ui.add(
-                        Button::new(RichText::new("add workout").size(22.0))
+                        Button::new(RichText::new("add workout").size(22.0).color(Color32::WHITE))
                             //     egui::Color32::from_rgb(91, 0, 113),
                             .fill(Color32::from_rgb(0, 75, 141)) // цвет фона кнопки
                             .min_size(Vec2::new(side_rect.width() / 2.5, 40.0))
@@ -551,20 +587,12 @@ impl App {
             egui::vec2(ui.available_width(), 100.0),
         );
 
-        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color);
-
-        // ui.painter().rect_filled(
-        //     top_rect,
-        //     egui::epaint::Rounding {
-        //         nw: 0,
-        //         ne: 0,
-        //         sw: 24,
-        //         se: 24,
-        //     },
-        //     elements_color,
-        //     // egui::Color32::from_rgb(27, 27, 27),
-        //     // egui::Color32::from_rgb(217, 217, 217),
-        // );
+        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color, 6.0, [(5.0, 20), (3.0, 25), (2.0, 30),], Rounding {
+            nw: 0,
+            ne: 0,
+            sw: 24,
+            se: 24,
+        });
 
         let now = OffsetDateTime::now_local().unwrap();
 
@@ -584,16 +612,14 @@ impl App {
             ctx.screen_rect().right_bottom().to_vec2(),
         );
 
-        ui.painter().rect_filled(
-            bot_rect,
-            egui::epaint::Rounding {
-                nw: 24,
-                ne: 24,
-                sw: 0,
-                se: 0,
-            },
-            elements_color,
-        );
+        Self::draw_rect_with_black_shadow(ui.painter(), bot_rect, 24, elements_color, -4.0, [(2.0, 20), (3.0, 25), (5.0, 30)], Rounding {
+            nw: 24,
+            ne: 24,
+            sw: 0,
+            se: 0,
+        });
+        
+        let weekdays = ["mo", "tu", "we", "th", "fr", "sa", "su"];
 
         ui.allocate_ui_at_rect(bot_rect, |ui| {
             ui.vertical_centered_justified(|ui| {
@@ -610,19 +636,25 @@ impl App {
                         let offset = i as i32 - today as i32;
                         let date = now + Duration::days(offset.into());
 
-                        ui.add(Button::new(RichText::new(format!("{}", date.day()))
-                            .size(18.0)
-                            .color(Color32::WHITE))
-                            .fill(if i == today { Color32::from_rgb(0, 75, 142) } else { Color32::from_rgb(96, 96, 96) })
-                            .min_size(Vec2::new(rect_width, 60.0))
-                            .rounding(8));
+                        ui.vertical(|ui| {
+                            ui.add(Label::new(format!(" {}", weekdays[i - 1])).selectable(false));
+
+                            ui.add(Button::new(RichText::new(format!("{}", date.day()))
+                                .size(18.0)
+                                .color(Color32::WHITE))
+                                .fill(if i as u8 == today { Color32::from_rgb(0, 75, 142) } else { Color32::from_rgb(96, 96, 96) })
+                                .min_size(Vec2::new(rect_width, 60.0))
+                                .rounding(8))
+                        });
                     }
                 });
             });
         });
+
+        draw_stretched_background_x(ui, image_texture.unwrap(), -70.0);
     }
 
-    fn calory_tracker_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
+    fn calory_tracker_ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, image_texture: Option<&TextureHandle>) {
 
         let is_dark = ctx.style().visuals.dark_mode;
 
@@ -631,26 +663,18 @@ impl App {
         } else {
             egui::Color32::from_rgb(217, 217, 217)
         };
-        // ui.heading("CALORY TRACKER");
+
         let top_rect = egui::Rect::from_min_size(
             ctx.screen_rect().left_top(),
             egui::vec2(ui.available_width(), 100.0),
         );
 
-        // ui.painter().rect_filled(
-        //     top_rect,
-        //     egui::epaint::Rounding {
-        //         nw: 0,
-        //         ne: 0,
-        //         sw: 24,
-        //         se: 24,
-        //     },
-        //     elements_color,
-        //     // egui::Color32::from_rgb(27, 27, 27),
-        //     // egui::Color32::from_rgb(217, 217, 217),
-        // );
-
-        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color);
+        Self::draw_rect_with_black_shadow(ui.painter(), top_rect, 24, elements_color, 6.0, [(5.0, 20), (3.0, 25), (2.0, 30),], Rounding {
+            nw: 0,
+            ne: 0,
+            sw: 24,
+            se: 24,
+        });
 
         let now = OffsetDateTime::now_local().unwrap();
 
@@ -667,8 +691,6 @@ impl App {
         ui.vertical_centered(|ui| {
             ui.add(Label::new(RichText::new("CALORIES").size(25.0).strong()).selectable(false));
 
-            // ui.add_space(40.0);
-
             let calory_rect =egui::Rect::from_min_size(
                 // top_rect.left_top() + egui::vec2(50.0, top_rect.height() + 25.0),
                 ctx.screen_rect().left_top() + vec2(150.0, 155.0),
@@ -684,8 +706,6 @@ impl App {
                     se: 24,
                 },
                 elements_color,
-                // egui::Color32::from_rgb(27, 27, 27),
-                // egui::Color32::from_rgb(217, 217, 217),
             );
 
             ui.allocate_ui_at_rect(calory_rect, |ui| {
@@ -752,8 +772,6 @@ impl App {
             ui.add(Label::new(RichText::new("MACROS").size(25.0).strong()).selectable(false));
 
             ui.horizontal(|ui| {
-
-
                 ui.painter().rect_filled(
                     carbs_rect,
                     egui::epaint::Rounding {
@@ -763,8 +781,6 @@ impl App {
                         se: 14,
                     },
                     elements_color,
-                    // egui::Color32::from_rgb(27, 27, 27),
-                    // egui::Color32::from_rgb(217, 217, 217),
                 );
 
                 ui.allocate_ui_at_rect(carbs_rect, |ui| {
@@ -780,7 +796,6 @@ impl App {
                     });
                 });
 
-
                 ui.painter().rect_filled(
                     proteins_rect,
                     egui::epaint::Rounding {
@@ -790,8 +805,6 @@ impl App {
                         se: 14,
                     },
                     elements_color,
-                    // egui::Color32::from_rgb(27, 27, 27),
-                    // egui::Color32::from_rgb(217, 217, 217),
                 );
 
                 ui.allocate_ui_at_rect(proteins_rect, |ui| {
@@ -816,8 +829,6 @@ impl App {
                         se: 14,
                     },
                     elements_color,
-                    // egui::Color32::from_rgb(27, 27, 27),
-                    // egui::Color32::from_rgb(217, 217, 217),
                 );
 
                 ui.allocate_ui_at_rect(fats_rect, |ui| {
@@ -859,16 +870,12 @@ impl App {
                 ctx.screen_rect().right_bottom().to_vec2(),
             );
 
-            ui.painter().rect_filled(
-                bot_rect,
-                egui::epaint::Rounding {
-                    nw: 110,
-                    ne: 110,
-                    sw: 0,
-                    se: 0,
-                },
-                elements_color,
-            );
+            Self::draw_rect_with_black_shadow(ui.painter(), bot_rect, 110, elements_color, -4.0, [(2.0, 20), (3.0, 25), (5.0, 30)], Rounding {
+                nw: 110,
+                ne: 110,
+                sw: 0,
+                se: 0,
+            });
 
             ui.allocate_ui_at_rect(bot_rect, |ui| {
                 ui.add_space(30.0);
@@ -880,6 +887,8 @@ impl App {
                         .rounding(12),
                 );
             });
+
+            draw_stretched_background_x(ui, image_texture.unwrap(), 300.0);
         });
     }
 
@@ -909,7 +918,8 @@ impl App {
 
                         let color =  if green_rects > 0 {
                             green_rects -= 1;
-                            Color32::GREEN
+                            Color32::from_rgb(0, 136, 255)
+                            // Color32::DARK_BLUE
                         } else {
                             Color32::GRAY
                         };
@@ -925,7 +935,6 @@ impl App {
             ui.add_space(5.0);
         });
     }
-
 
     fn mini_tracker_bar(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, spacing: f32, rect_size:f32, cols: i32, registered: u32, goal: u32) {
         // let prev_spacing = ui.spacing().item_spacing; // сохраняем
@@ -953,7 +962,7 @@ impl App {
 
                         let color = if remaining > 0 {
                             remaining -= 1;
-                            Color32::GREEN
+                            Color32::from_rgb(0, 136, 255)
                         } else {
                             Color32::GRAY
                         };
@@ -967,94 +976,22 @@ impl App {
                 });
             }
         });
-
-        // ui.spacing_mut().item_spacing = prev_spacing; // восстанавливаем
     }
 
-    // fn draw_macro_block_with_squares(
-    //     &mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui,
-    //     name: &str,
-    //     value: usize,
-    //     max: usize,
-    //     title_color: Color32,
-    //     filled_color: Color32,
-    //     empty_color: Color32,
-    //     spacing: f32,
-    //     rect_size: f32,
-    // ) {
-    //     const COLUMNS: i32 = 5;
-    //     const ROWS: i32 = 5;
-    //     const TOTAL: i32 = COLUMNS * ROWS;
-    // 
-    //     let filled_count = ((value as f32 / max as f32) * TOTAL as f32).round() as i32;
-    // 
-    //     ui.vertical(|ui| {
-    //         ui.group(|ui| {
-    //             ui.vertical_centered(|ui| {
-    //                 ui.label(
-    //                     egui::RichText::new(name)
-    //                         .color(title_color)
-    //                         .strong(),
-    //                 );
-    //                 ui.label(
-    //                     egui::RichText::new(format!("{}/{}", value, max))
-    //                         .strong(),
-    //                 );
-    //             });
-    //         });
-    // 
-    //         ui.add_space(5.0);
-    //         ui.spacing_mut().item_spacing = egui::vec2(spacing, -3.0);
-    // 
-    //         let mut remaining = filled_count;
-    // 
-    //     });
-    // }
-
-
-    // fn draw_rect_with_shadow(painter: &egui::Painter, rect: egui::Rect, rounding: u8, fill: Color32) {
-    //     // Рисуем "тень" — затемнённый прямоугольник под основным
-    //     let shadow_offset = Vec2::new(0.0, 6.0);
-    //     let shadow_color = Color32::from_rgba_unmultiplied(0, 0, 0, 50); // полупрозрачный чёрный
-    //
-    //     let shadow_rect = rect.translate(shadow_offset);
-    //
-    //     painter.rect_filled(shadow_rect, egui::Rounding::same(rounding), shadow_color);
-    //
-    //     // Основной прямоугольник — поверх
-    //     painter.rect_filled(rect, egui::Rounding::same(rounding), fill);
-    // }
-
-
-    fn draw_rect_with_black_shadow(painter: &egui::Painter, rect: egui::Rect, rounding: u8, fill: Color32) {
-        use egui::{Vec2, Rounding, Color32};
-
-        // Плотная чёрная тень
+    fn draw_rect_with_black_shadow(painter: &egui::Painter, rect: egui::Rect, rounding: u8, fill: Color32, offset_y: f32, layer: [(f32, u8); 3], corners: Rounding) {
         let shadow_color = |alpha: u8| Color32::from_rgba_unmultiplied(0, 0, 0, alpha);
 
-        let shadow_offset = Vec2::new(0.0, 6.0);
+        let shadow_offset = Vec2::new(0.0, offset_y);
 
-        let blur_layers = [
-            (5.0, 20),
-            (3.0, 25),
-            (2.0, 30),
-            // (2.0, 50),
-        ];
-
-        for (inflate_by, alpha) in blur_layers {
+        for (inflate_by, alpha) in layer {
             let shadow_rect = rect
                 .translate(shadow_offset)
                 .expand(inflate_by);
-            painter.rect_filled(shadow_rect, Rounding::same(rounding + inflate_by as u8), shadow_color(alpha));
+            painter.rect_filled(shadow_rect, egui::Rounding::same(rounding + inflate_by as u8), shadow_color(alpha));
         }
 
-        // Основной прямоугольник
-        painter.rect_filled(rect, Rounding {
-            nw: 0,
-            ne: 0,
-            sw: 24,
-            se: 24,
-        }, fill);
+        painter.rect_filled(rect, corners
+        ,fill);
     }
 
 
@@ -1074,13 +1011,14 @@ impl App {
         });
     }
 
-    fn ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui) {
+    fn ui(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut egui::Ui, image_texture: Option<&TextureHandle>, // 👈 добавили
+        ) {
         match self.selected_tab {
             // 0 => self.testing(ctx, frame, ui),
             0 => self.home_ui(ctx, frame, ui),
             1 => self.friends_ui(ctx, frame, ui),
-            2 => self.workouts_ui(ctx, frame, ui),
-            3 => self.calory_tracker_ui(ctx, frame, ui),
+            2 => self.workouts_ui(ctx, frame, ui, image_texture),
+            3 => self.calory_tracker_ui(ctx, frame, ui, image_texture),
             4 => self.statistics_ui(ctx, frame, ui),
             _ => {ui.label("empty");},
         }
@@ -1090,27 +1028,20 @@ impl App {
 fn setup_custom_fonts(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
 
-    // Добавляем свой TTF-шрифт из ресурсов (например, "my_font.ttf")
     fonts.font_data.insert(
         "my_font".to_owned(),
         Arc::new(egui::FontData::from_static(include_bytes!("../SF-Pro-Display-Semibold.otf"))), // или from_owned()
     );
 
-    // Назначаем этот шрифт для пропорционального и моноширинного текста
-    // fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "my_font".to_owned());
-    // fonts.families.get_mut(&FontFamily::Monospace).unwrap().push("my_font".to_owned());
-    // 
-    // ctx.set_fonts(fonts);
     fonts
         .families
         .get_mut(&FontFamily::Proportional)
         .unwrap()
         .insert(0, "my_font".to_owned());
-
     ctx.set_fonts(fonts);
 }
 
-impl eframe::App for App {
+impl eframe::App for AppRuntime {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let is_dark = ctx.style().visuals.dark_mode;
 
@@ -1132,7 +1063,6 @@ impl eframe::App for App {
         ctx.layer_painter(egui::LayerId::background())
             .rect_filled(ctx.screen_rect(), egui::epaint::Rounding::ZERO, bg_color);
 
-
         egui_extras::install_image_loaders(ctx);
 
         egui::CentralPanel::default()
@@ -1141,13 +1071,8 @@ impl eframe::App for App {
             )
             // .frame(egui::Frame::default().inner_margin(egui::Margin::same(0)).outer_margin(egui::Margin::same(0)))
             .show(ctx, |ui| {
-                self.ui(ctx, frame, ui);
+                self.app.ui(ctx, frame, ui, self.image_texture.as_ref());
             });
-
-        // let home = egui::include_image!("../home.svg");
-        // let dumb = egui::include_image!("../dumb.png");
-        // let graph = egui::include_image!("../graph.png");
-
 
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(false)
@@ -1225,15 +1150,13 @@ impl eframe::App for App {
                     ui.add_space(left_padding);
 
                     for (i, label) in ["🏠", "🌍", "💪", "🍴", "📈"].iter().enumerate() {
-                        let selected = self.selected_tab == i;
+                        let selected = self.app.selected_tab == i;
                         let button = egui::SelectableLabel::new(selected, *label);
                         if ui.add_sized(egui::vec2(button_width, 30.0), button).clicked() {
-                            self.selected_tab = i;
+                            self.app.selected_tab = i;
                         }
                     }
                 });
-
-
             });
     }
 }
