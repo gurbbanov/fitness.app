@@ -13,7 +13,7 @@ pub struct UserInformation {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct UserData {
+pub struct AccountData {
     pub level: u32,
     pub xp: u32,
     pub current_streak: u32,
@@ -67,22 +67,9 @@ pub struct Exercise {
     pub sets: Vec<Set>,
 }
 
-impl Exercise {
-    fn new(name: String, targ_musc: MuscleGroup, descript: Option<String>) -> Self {
-        Exercise {name: name, target_muscle: targ_musc, description: descript, sets: vec![Set::default()]}
-    }
-
-    fn add_set(&mut self) {
-        self.sets.push(Set::default());
-    }
-
-    fn remove_set(&mut self) {
-        self.sets.pop();
-    }
-}
 
 #[derive(Debug)]
-enum MuscleGroup{
+pub enum MuscleGroup{
     Shoulders,
     Chest,
     Back,
@@ -93,48 +80,28 @@ enum MuscleGroup{
     Legs,
 }
 
-struct Rest{}
+pub struct Rest{}
 
-struct Workout {
-    name: String,
-    exercises: Vec<Exercise>,
+pub struct Skip{}
+
+pub struct WorkoutPattern {
+    pub name: String,
+    pub exercises: Vec<Exercise>,
 }
 
-impl Workout {
-    fn new(name: String) -> Self {
-        Self {name: name, exercises: Vec::new()}
-    }
-
-    fn add_exercise(&mut self, exer: Exercise) {
-        self.exercises.push(exer);
-    }
-
-    fn remove_exercise(&mut self, ind: usize) {
-        self.exercises.remove(ind);
-    }
-}
-
-enum Activities {
+pub enum Activities {
     Rest,
     Workout,
+    Skip,
 }
 
 #[derive(Debug)]
-struct Session {
-    st: Instant,
-    duration: Option<Duration>,
-    date: OffsetDateTime,
+pub struct Session {
+    pub st: Instant,
+    pub duration: Option<Duration>,
+    pub date: OffsetDateTime,
 }
 
-impl Session {
-    fn start() -> Self {
-        Self { st: Instant::now(), duration: None, date: OffsetDateTime::now_local().unwrap() }
-    }
-
-    fn stop(&mut self) {
-        self.duration = Some(self.st.elapsed());
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct Set {

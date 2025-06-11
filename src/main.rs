@@ -1,7 +1,8 @@
 mod muscles;
-mod app;
+mod ui;
 mod models;
 mod tools;
+mod app;
 
 use std::{fs, time::{Duration, Instant}};
 use time::{OffsetDateTime};
@@ -47,7 +48,7 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "fitness app",
         options,
-        Box::new(|cc| Ok(Box::new(app::AppRuntime::new(&cc.egui_ctx)))),
+        Box::new(|cc| Ok(Box::new(ui::AppRuntime::new(&cc.egui_ctx)))),
     )
     // let mut sess = session::start();
 

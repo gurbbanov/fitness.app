@@ -69,8 +69,11 @@ pub fn workout_tracker_widget_front(ctx: &egui::Context, frame: &mut eframe::Fra
     let TC_left_bottom_r = Pos2::new(chest_center.x + offset, chest_center.y + TC_chest_height);
     let TC_right= vec![TC_left_top_r, TC_right_top_r, TC_right_bottom_r, TC_left_bottom_r];
 
-    painter.add(Shape::convex_polygon(TC_left, Color32::DARK_GREEN, border));
-    painter.add(Shape::convex_polygon(TC_right, Color32::DARK_GREEN, border));
+    let chest_color = Color32::from_rgb(0, 75, 141);
+
+    painter.add(Shape::convex_polygon(TC_left, chest_color, border));
+    // Color32::from_rgb(0, 136, 255)
+    painter.add(Shape::convex_polygon(TC_right, chest_color, border));
 
     //BOTTOM CHEST (BC)
     let BC_chest_height = 10.0;
@@ -87,8 +90,8 @@ pub fn workout_tracker_widget_front(ctx: &egui::Context, frame: &mut eframe::Fra
     let BC_left_bot_r = Pos2::new(BC_left_top_r.x + 1.5, BC_left_top_r.y + BC_chest_height);
     let BC_right = vec![BC_left_top_r, BC_right_top_r, BC_right_bot_r, BC_left_bot_r];
 
-    painter.add(Shape::convex_polygon(BC_left, Color32::DARK_GREEN, border));
-    painter.add(Shape::convex_polygon(BC_right, Color32::DARK_GREEN, border));
+    painter.add(Shape::convex_polygon(BC_left, chest_color, border));
+    painter.add(Shape::convex_polygon(BC_right, chest_color, border));
 
     //SHOULDERS/DELTS
     //FRONT DELT (FD)
